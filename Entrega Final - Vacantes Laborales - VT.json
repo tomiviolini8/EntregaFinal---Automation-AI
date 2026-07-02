@@ -1,0 +1,1417 @@
+{
+  "name": "Entrega Final - Vacantes Laborales - VT",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": 3,
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "c3a6e127-6b5e-421a-9974-b8519f414404",
+      "name": "Trigger - Cada 3 dias 8am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3856,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "={{ $vars.AIRTABLE_BASE_ID }}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl811euQ9I6QajmD",
+          "mode": "list",
+          "cachedResultName": "Perfil",
+          "cachedResultUrl": "https://airtable.com/appIVVtiDYtRunbMy/tbl811euQ9I6QajmD"
+        },
+        "filterByFormula": "={Activo}=TRUE()",
+        "options": {}
+      },
+      "id": "1ee4bdbd-5f4f-4643-aedb-96a4ed0d359d",
+      "name": "Airtable - Leer Perfil (CV)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -3632,
+        448
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m1p0cOql5fKOgwAg",
+          "name": "Airtable Personal Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-cv-exists",
+              "leftValue": "={{ $json.CV_Texto }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4eea40ba-2753-4742-8c59-b2136d4355ea",
+      "name": "IF - CV cargado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3424,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-cv",
+              "name": "cv_texto",
+              "value": "={{ $json.CV_Texto }}",
+              "type": "string"
+            },
+            {
+              "id": "set-keywords",
+              "name": "keywords",
+              "value": "={{ $json.Keywords }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d99629bc-2323-468a-9eae-3bf6f877e07b",
+      "name": "Set - Guardar contexto CV",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3200,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Terminos de busqueda generados dinamicamente (no hardcodeados en el HTTP).\n// Si el Perfil trae Keywords, se usan; si no, fallback a terminos por defecto.\nconst kw = ($('Set - Guardar contexto CV').first().json.keywords || '').trim();\n\nlet terminos;\nif (kw) {\n  terminos = kw.split(',').map(t => t.trim()).filter(Boolean);\n} else {\n  terminos = [\n    'process analyst',\n    'business analyst',\n    'continuous improvement',\n    'operations analyst',\n    'data analyst'\n  ];\n}\n\nreturn terminos.map(t => ({ json: { termino: t } }));"
+      },
+      "id": "13069b4c-c207-4909-9912-ac6ee372294d",
+      "name": "Code - Terminos busqueda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2976,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.adzuna.com/v1/api/jobs/gb/search/1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "app_id",
+              "value": "={{ $vars.ADZUNA_APP_ID }}"
+            },
+            {
+              "name": "app_key",
+              "value": "={{ $vars.ADZUNA_APP_KEY }}"
+            },
+            {
+              "name": "results_per_page",
+              "value": "5"
+            },
+            {
+              "name": "what",
+              "value": "={{ $json.termino }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "id": "fa3ca238-e769-479a-b49e-243f6c10bfb1",
+      "name": "HTTP - Adzuna API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2688,
+        320
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "id": "e6ffbd0d-68c9-403e-a805-724bb28f0e7a",
+      "name": "Split - Vacantes individuales",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -2336,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m-titulo",
+              "name": "titulo",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "m-empresa",
+              "name": "empresa",
+              "value": "={{ $json.company?.display_name || $json.company_name || 'No especificada' }}\n",
+              "type": "string"
+            },
+            {
+              "id": "m-ubicacion",
+              "name": "ubicacion",
+              "value": "={{ $json.location?.display_name || $json.candidate_required_location || 'No especificada' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-url",
+              "name": "url",
+              "value": "={{ $json.redirect_url || $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "m-desc",
+              "name": "descripcion",
+              "value": "={{ ($json.description || '').substring(0, 1500) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "207257a1-5739-4dd8-b7fa-c80f7ffaa97b",
+      "name": "Set - Normalizar vacante",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1776,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Sos un reclutador experto. Compara el CV del candidato con una vacante y devolves SOLO un JSON valido (sin markdown) con esta estructura exacta: {\"score\": <numero entero 0-100>, \"justificacion\": \"<2 frases explicando el match>\", \"recomendado\": <true/false>}. El score refleja el ajuste real entre el perfil y los requisitos. Si la descripcion esta vacia o es ambigua, asigna score 0 y justificacion 'Datos insuficientes'.",
+              "role": "system"
+            },
+            {
+              "content": "=CV DEL CANDIDATO:\n   {{ $('Set - Guardar contexto CV').first().json.cv_texto }}\n\n---\nVACANTE:\nTitulo: {{ $json.titulo }}\nEmpresa: {{ $json.empresa }}\nUbicacion: {{ $json.ubicacion }}\nDescripcion: {{ $json.descripcion }}\n\nEvalua el match y devolve el JSON."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "maxTokens": 300,
+          "temperature": 0.3
+        }
+      },
+      "id": "d907f2c4-5f71-4a22-9e0f-f7fdbf8301e3",
+      "name": "OpenAI - Score vs CV",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1568,
+        384
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "hu39HxnAkNSBeGYs",
+          "name": "OpenAI account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "merge-score",
+              "name": "score",
+              "value": "={{ parseInt($json.message.content.score) || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "merge-just",
+              "name": "justificacion",
+              "value": "={{ $json.message.content.justificacion }}",
+              "type": "string"
+            },
+            {
+              "id": "merge-titulo",
+              "name": "titulo",
+              "value": "={{ ($('Set - Normalizar vacante').item.json.titulo || '').replace(/^=+/, '').replace(/\\n/g, ' ').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "merge-empresa",
+              "name": "empresa",
+              "value": "={{ ($('Set - Normalizar vacante').item.json.empresa || '').replace(/^=+/, '').replace(/\\n/g, ' ').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "merge-ubic",
+              "name": "ubicacion",
+              "value": "={{ ($('Set - Normalizar vacante').item.json.ubicacion || '').replace(/^=+/, '').replace(/\\n/g, ' ').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "merge-url",
+              "name": "url",
+              "value": "={{ ($('Set - Normalizar vacante').item.json.url || '').replace(/^=+/, '').trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5881665c-5aef-4d21-9a72-dea4fbe36f0a",
+      "name": "Set - Combinar score+vacante",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1200,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "={{ $vars.AIRTABLE_BASE_ID }}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblRgcstcESSbZXpt",
+          "mode": "list",
+          "cachedResultName": "Vacantes",
+          "cachedResultUrl": "https://airtable.com/appIVVtiDYtRunbMy/tblRgcstcESSbZXpt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Titulo": "={{ $json.titulo }}",
+            "Empresa": "={{ $json.empresa }}",
+            "Ubicacion": "={{ $json.ubicacion }}",
+            "URL": "={{ $json.url }}",
+            "Score": "={{ $json.score }}",
+            "Justificacion": "={{ $json.justificacion }}",
+            "Estado": "Analizado IA",
+            "Fecha": "={{ $now.format('yyyy-MM-dd') }}",
+            "Perfil": "={{ [$('Airtable - Leer Perfil (CV)').first().json.id] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Titulo",
+              "displayName": "Titulo",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Empresa",
+              "displayName": "Empresa",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ubicacion",
+              "displayName": "Ubicacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Justificacion",
+              "displayName": "Justificacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Analizado IA",
+                  "value": "Analizado IA"
+                },
+                {
+                  "name": "Aprobado",
+                  "value": "Aprobado"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Perfil",
+              "displayName": "Perfil",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ce342408-15dd-4ca6-9753-91d80d7c82af",
+      "name": "Airtable - Guardar vacante",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -992,
+        368
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m1p0cOql5fKOgwAg",
+          "name": "Airtable Personal Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "a65f0cf2-6f43-4fc9-894a-af8159e9e5bf",
+      "name": "Aggregate - Juntar todas",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ordena por score desc, toma top 10, arma HTML del email de aprobacion.\n// El link de aprobacion usa la resumeUrl REAL del nodo Wait (HITL correcto).\nconst raw = $input.first().json.data || [];\n// Airtable devuelve los campos dentro de \"fields\" con mayuscula. Los normalizamos.\nconst items = raw.map(r => ({\n  titulo: r.fields?.Titulo || r.titulo,\n  empresa: r.fields?.Empresa || r.empresa,\n  ubicacion: r.fields?.Ubicacion || r.ubicacion,\n  url: r.fields?.URL || r.url,\n  score: r.fields?.Score ?? r.score,\n  justificacion: r.fields?.Justificacion || r.justificacion\n}));\nconst top10 = items\n  .filter(v => v.score != null)\n  .sort((a, b) => b.score - a.score)\n  .slice(0, 10);\n\nif (top10.length === 0) {\n  return [{ json: { vacio: true, total: 0, top10: [], html: '<p>No se encontraron vacantes en este ciclo.</p>' } }];\n}\n\n// resumeUrl unica de esta ejecucion (la genera el nodo Wait).\nconst resumeUrl = $execution.resumeUrl;\nconst urlAprobar = `${resumeUrl}&decision=aprobar`;\nconst urlRechazar = `${resumeUrl}&decision=rechazar`;\n\nconst filas = top10.map((v) => `\n    <tr style=\"border-bottom:1px solid #eee\">\n      <td style=\"padding:10px;font-weight:bold;font-size:18px;color:#2c3e50\">${v.score}</td>\n      <td style=\"padding:10px\">\n        <a href=\"${v.url}\" style=\"color:#2980b9;font-weight:bold;text-decoration:none\">${v.titulo}</a><br>\n        <span style=\"color:#888;font-size:13px\">${v.empresa} &middot; ${v.ubicacion}</span><br>\n        <span style=\"color:#555;font-style:italic;font-size:13px\">${v.justificacion}</span>\n      </td>\n    </tr>`).join('');\n\nconst html = `\n  <div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto\">\n    <h2 style=\"color:#2c3e50\">Top ${top10.length} vacantes para vos</h2>\n    <p style=\"color:#555\">El sistema analizo y puntuo estas vacantes contra tu CV. Revisalas y decidi:</p>\n    <table style=\"width:100%;border-collapse:collapse\">\n      <tr style=\"background:#f4f6f7\">\n        <th style=\"padding:10px;text-align:left;color:#2c3e50\">Score</th>\n        <th style=\"padding:10px;text-align:left;color:#2c3e50\">Vacante</th>\n      </tr>\n      ${filas}\n    </table>\n    <div style=\"margin-top:24px;text-align:center\">\n      <a href=\"${urlAprobar}\" style=\"background:#27ae60;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;margin-right:12px;font-weight:bold\">APROBAR Y ENVIAR DIGEST</a>\n      <a href=\"${urlRechazar}\" style=\"background:#e74c3c;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold\">RECHAZAR LOTE</a>\n    </div>\n    <p style=\"color:#aaa;font-size:11px;margin-top:20px\">Examen Final - Ecosistema de Automatizacion IA. Este correo espera tu aprobacion (HITL) antes de ejecutar la accion final.</p>\n  </div>`;\n\nreturn [{ json: { vacio: false, html, top10, total: top10.length } }];"
+      },
+      "id": "20acfc93-4177-478f-9acf-ac999d49b681",
+      "name": "Code - Top 10 + HTML aprobacion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.MI_EMAIL }}",
+        "subject": "=[APROBACION] {{ $json.total }} vacantes esperan tu revision",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "4ed716f0-ec4d-4e30-952c-ca20b26b29b7",
+      "name": "Gmail - Email HITL (aprobacion)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        368
+      ],
+      "webhookId": "hitl-approval-email-001",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "M9maM80oo3SJpNxA",
+          "name": "Credencial Gmail tomasvioliniutn10@"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-aprobado",
+              "leftValue": "={{ $json.query?.decision || $json.decision || 'rechazar' }}",
+              "rightValue": "aprobar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "95513c8a-5bb7-4d4b-814d-d608bfdeb086",
+      "name": "IF - Aprobado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        112,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recupera el top10 guardado antes del Wait y arma el digest final.\nconst top10 = $('Code - Top 10 + HTML aprobacion').first().json.top10 || [];\n\nconst tarjetas = top10.map(v => `\n  <div style=\"border:1px solid #e0e0e0;border-radius:8px;padding:16px;margin-bottom:14px;font-family:Arial,sans-serif\">\n    <h3 style=\"margin:0;color:#2c3e50\">${v.titulo} <span style=\"color:#27ae60\">(${v.score}/100)</span></h3>\n    <p style=\"margin:6px 0;color:#666\">${v.empresa} &middot; ${v.ubicacion}</p>\n    <p style=\"font-style:italic;color:#888;margin:6px 0\">${v.justificacion}</p>\n    <a href=\"${v.url}\" style=\"color:#2980b9;font-weight:bold\">Ver y postularme &rarr;</a>\n  </div>`).join('');\n\nconst html = `\n  <div style=\"max-width:640px;margin:auto;font-family:Arial,sans-serif\">\n    <h2 style=\"color:#2c3e50\">Tu digest de vacantes aprobadas</h2>\n    ${tarjetas}\n  </div>`;\nreturn [{ json: { html, total: top10.length } }];"
+      },
+      "id": "7fc9059f-0c33-4f83-8a2c-0c744dcce5eb",
+      "name": "Code - Armar digest final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.MI_EMAIL }}",
+        "subject": "=Tu digest: {{ $json.total }} vacantes aprobadas",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "76077e0c-56ad-43d6-a84f-16fc5d6b1817",
+      "name": "Gmail - Digest final",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1040,
+        256
+      ],
+      "webhookId": "digest-final-001",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "M9maM80oo3SJpNxA",
+          "name": "Credencial Gmail tomasvioliniutn10@"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "log-rechazo",
+              "name": "resultado",
+              "value": "Usuario rechazo el lote. No se envia digest.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "73549439-131b-43bd-a19f-25b728680862",
+      "name": "Set - Log rechazo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        576,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "={{ $vars.AIRTABLE_BASE_ID }}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblRgcstcESSbZXpt",
+          "mode": "list",
+          "cachedResultName": "Vacantes",
+          "cachedResultUrl": "https://airtable.com/appIVVtiDYtRunbMy/tblRgcstcESSbZXpt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Titulo": "ERROR DE API",
+            "Estado": "Error",
+            "Justificacion": "={{ 'Fallo en nodo previo: ' + JSON.stringify($json.error || $json).substring(0,500) }}",
+            "Fecha": "={{ $now.format('yyyy-MM-dd') }}",
+            "Score": 0
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Titulo",
+              "displayName": "Titulo",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Empresa",
+              "displayName": "Empresa",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ubicacion",
+              "displayName": "Ubicacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Justificacion",
+              "displayName": "Justificacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Analizado IA",
+                  "value": "Analizado IA"
+                },
+                {
+                  "name": "Aprobado",
+                  "value": "Aprobado"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "bad399c6-8355-495e-9f54-a9b819ae3598",
+      "name": "Airtable - Log Error",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1488,
+        720
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m1p0cOql5fKOgwAg",
+          "name": "Airtable Personal Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.MI_EMAIL }}",
+        "subject": "[ALERTA] El flujo Job Matcher se detuvo (sin CV)",
+        "emailType": "text",
+        "message": "El flujo no encontro un CV cargado y activo el método de aviso inmediato. Por favor, carga el CV y vuelve a ejecutar.",
+        "options": {}
+      },
+      "id": "72b4a130-2b47-4d8b-ad22-da49d3fa1793",
+      "name": "Gmail - Alerta sin CV",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -3200,
+        608
+      ],
+      "webhookId": "alerta-sin-cv-001",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "M9maM80oo3SJpNxA",
+          "name": "Credencial Gmail tomasvioliniutn10@"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://remotive.com/api/remote-jobs",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "search",
+              "value": "analyst"
+            },
+            {
+              "name": "limit",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -2688,
+        608
+      ],
+      "id": "9e5e6e9d-3530-443c-ab0d-fdbb62ad37f4",
+      "name": "HTTP - Remotive API",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -2352,
+        496
+      ],
+      "id": "b99cfb95-4738-4bea-aac5-f86f97c5d2d7",
+      "name": "Split - Remotive jobs"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -2016,
+        384
+      ],
+      "id": "f31b2052-9721-4bda-9251-4adcf5f0a8f1",
+      "name": "Merge - Unir fuentes"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "b74c57ea-2b08-42aa-a033-8d7b242373d1",
+      "name": "Wait - Espera aprobacion HITL",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        368
+      ],
+      "webhookId": "hitl-wait-resume-001"
+    },
+    {
+      "parameters": {
+        "content": "## HITL\n** Etapa de APOBACIÓN de vacantes laborales",
+        "height": 352,
+        "width": 864,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -816,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "f18d3d94-b9b7-413e-8064-77b28dfc3123",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# NO MOSTRAR YA QUE SE VEN LAS API´S",
+        "height": 736,
+        "width": 224,
+        "color": "#C34B4B"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2736,
+        128
+      ],
+      "typeVersion": 1,
+      "id": "894ea5dc-dc51-4e42-8730-46a0f3ace0df",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appIVVtiDYtRunbMy",
+          "mode": "list",
+          "cachedResultName": "Job Matched",
+          "cachedResultUrl": "https://airtable.com/appIVVtiDYtRunbMy"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblRgcstcESSbZXpt",
+          "mode": "list",
+          "cachedResultName": "Vacantes",
+          "cachedResultUrl": "https://airtable.com/appIVVtiDYtRunbMy/tblRgcstcESSbZXpt"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "Estado": "Aprobado"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Titulo",
+              "displayName": "Titulo",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Empresa",
+              "displayName": "Empresa",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ubicacion",
+              "displayName": "Ubicacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Justificacion",
+              "displayName": "Justificacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Analizado IA",
+                  "value": "Analizado IA"
+                },
+                {
+                  "name": "Aprobado",
+                  "value": "Aprobado"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Perfil",
+              "displayName": "Perfil",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        256
+      ],
+      "id": "9b7b16ac-40af-4b30-9813-a0f1be8a44ce",
+      "name": "Airtable - Marcar Aprobado",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "TKb8cJIzLIafnGEn",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appIVVtiDYtRunbMy",
+          "mode": "list",
+          "cachedResultName": "Job Matched",
+          "cachedResultUrl": "https://airtable.com/appIVVtiDYtRunbMy"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblRgcstcESSbZXpt",
+          "mode": "list",
+          "cachedResultName": "Vacantes",
+          "cachedResultUrl": "https://airtable.com/appIVVtiDYtRunbMy/tblRgcstcESSbZXpt"
+        },
+        "filterByFormula": "{Estado}=\"Analizado IA\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        256
+      ],
+      "id": "07ca3d61-cd17-4e38-b3f5-3a61cc35843b",
+      "name": "Airtable - Buscar Analizadas",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "TKb8cJIzLIafnGEn",
+          "name": "Airtable account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger - Cada 3 dias 8am": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Leer Perfil (CV)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Leer Perfil (CV)": {
+      "main": [
+        [
+          {
+            "node": "IF - CV cargado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - CV cargado?": {
+      "main": [
+        [
+          {
+            "node": "Set - Guardar contexto CV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Alerta sin CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Guardar contexto CV": {
+      "main": [
+        [
+          {
+            "node": "Code - Terminos busqueda",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - Remotive API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Terminos busqueda": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Adzuna API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Adzuna API": {
+      "main": [
+        [
+          {
+            "node": "Split - Vacantes individuales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable - Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split - Vacantes individuales": {
+      "main": [
+        [
+          {
+            "node": "Merge - Unir fuentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Normalizar vacante": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Score vs CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Score vs CV": {
+      "main": [
+        [
+          {
+            "node": "Set - Combinar score+vacante",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable - Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Combinar score+vacante": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Guardar vacante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Guardar vacante": {
+      "main": [
+        [
+          {
+            "node": "Aggregate - Juntar todas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate - Juntar todas": {
+      "main": [
+        [
+          {
+            "node": "Code - Top 10 + HTML aprobacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Top 10 + HTML aprobacion": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Email HITL (aprobacion)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Email HITL (aprobacion)": {
+      "main": [
+        [
+          {
+            "node": "Wait - Espera aprobacion HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Aprobado?": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Buscar Analizadas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Log rechazo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Armar digest final": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Digest final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Remotive API": {
+      "main": [
+        [
+          {
+            "node": "Split - Remotive jobs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable - Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split - Remotive jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge - Unir fuentes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - Unir fuentes": {
+      "main": [
+        [
+          {
+            "node": "Set - Normalizar vacante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait - Espera aprobacion HITL": {
+      "main": [
+        [
+          {
+            "node": "IF - Aprobado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Marcar Aprobado": {
+      "main": [
+        [
+          {
+            "node": "Code - Armar digest final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Buscar Analizadas": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Marcar Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "eb0054b8-c3ec-445a-9e41-036af51bce3c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d2ecd82491779056ebd997c906db6885320bd2bd086ef1ef254d28f2bf290b56"
+  },
+  "nodeGroups": [],
+  "id": "0DkYNGMZ9fWZ8BoD",
+  "tags": []
+}
