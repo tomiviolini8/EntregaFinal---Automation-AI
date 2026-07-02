@@ -165,7 +165,7 @@ El nodo `Wait` está en **Resume: On Webhook Call** con **Authentication: None**
 - 🗃️ **Base Airtable (modo lectura):** https://airtable.com/invite/l?inviteId=invwATxW1HGnVjXu1&inviteToken=cb996789134ed5e3860da54ad09ff2aac006273fb2ad92ef6bb65324559a3b71&utm_medium=email&utm_source=product_team&utm_content=transactional-alerts
 - 📂 **Flujo:** [`Entrega_Final_-_Vacantes_Laborales_-_VT.json`](./Entrega_Final_-_Vacantes_Laborales_-_VT.json)
 - 📄 **Diagrama:** [`Diagrama_Arquitectura_JobMatcher.pdf`](./Diagrama_Arquitectura_JobMatcher.pdf)
-- 🖼️ **Evidencias:** [`Entrega Final - Job Matched IA.pdf`](./Entrega Final - Job Matched IA.pdf)
+- 🖼️ **Evidencias:** [`Entrega Final - Job Matched IA.pdf`](./Entrega_Final_-_Job_Matched_IA.pdf)
 
 ---
 
